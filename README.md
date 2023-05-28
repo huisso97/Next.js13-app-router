@@ -27,25 +27,28 @@ Next.js 문서와 NextJS App Router 강의 자료 토대로 이해한 내용들�
 /app
 
 - page.tsx
-  - /dashboard
+/dashboard
+  - page.tsx
+/(auth)
+  /login
     - page.tsx
-  - /(auth)
-    - /login
-      - page.tsx
-    - /signUp
-      - page.tsx
+	/signUp
+    - page.tsx
 ```
 
 - (folder): url에는 표기가 안되지만 프로젝트 내부 폴더 구조로서 유관한 라우터들을 wrapping할 수 있다.
 
 app 폴더 내에 생성된 경로들은 모두 Server Component이므로, console.log()의 로그들이 보이지 않는다. 그래서 만약 CSR을 하기 위해서는 상단에 `use client`를 명시해야한다.
 
-### 언제 `use client`를 사용해야햘까?
+### Server Components
 
 #### Server Components
 
-With Server Components, the initial page load is faster, and the client-side JavaScript bundle size is reduced.
-To make the transition to Server Components easier, all components inside the App Router are Server Components by default, including special files and colocated components. This allows you to automatically adopt them with no extra work, and achieve great performance out of the box. You can also optionally opt-in to Client Components using the 'use client' directive.
+초기 페이지 로드가 더 빠르며, 클라이언트 사이드 자바스크립트 번들 사이즈가 줄어든다.
+
+그리고 중요한 자원들이 포함된 컴포넌트의 경우, 해당 자원들은 클라이언트에 로드된 자바스크립트 번들에 포함되지 않는다.
+
+기본적으로 app에 설정된 라우터들은 Server Component로 되어있으며, 'use client'를 통해 클라이언트 컴포넌트를 설정할 수 있다.
 
 #### Client Components
 
@@ -104,3 +107,165 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 위와 반대로, Client 컴포넌트에 Server 컴포넌트를 import해서는 안된다.
 
 [출처 : https://nextjs.org/docs/getting-started/react-essentials]
+
+### Loading
+
+Next.js는 기본적으로 Server Component를 제공한다고 하였다.
+
+그러면 비동기로 서버에서 데이터를 요청받을 때까지의 로딩을 어떻게 표시할 수 있을까?(우리는 useState와 같은 hook을 쓰지 못한다!)
+
+이러한 상황을 대비하여 Next.jsd에서는 loading에 대한 스켈레톤 혹은 로딩 UI를 보여줄 파일명을 따로 지정하였다.
+
+다음과 같이 `loading.tsx`을 추가하자.
+
+```markdown
+/app
+
+- page.tsx
+/dashboard
+  - page.tsx
+/(auth)
+  /login
+    - page.tsx
+    - loading.tsx
+  /signUp
+    - page.tsx
+```
+
+login의 page 컴포넌트에서 비동기로 특정 데이터가 요청되는 동안, loading 페이지가 렌더링된다.
+
+### Error
+
+React에서는 Suspense동안 렌더링이 실패할 때, Error Boundary를 호출하여 에러를 표시한다.
+
+`loading.tsx`처럼 `error.tsx` 컴포넌트를 만든다.
+
+```javascript
+// page.tsx
+
+const session = null
+
+export default function Home() {
+  if (!session) throw new Error("there is error related to session")
+  
+  return <main>This is an auth-only page</main>
+}
+```
+
+```javascript
+// error.tsx
+'use client'
+
+const error = ({
+  error,
+  reset // redo the last code
+}:{
+  error : Error;
+  reset : () => void
+}) => {
+  console.log(error.message) // there is error related to session
+  return <div>error <button onClick={reset}>Try again</button></div>
+  }
+export default error
+```
+
+위와 같이 error 메세지에 접근이 가능하다.
+
+좀 더 효율적으로 에러 메세지를 관리하기 위해서, 저렇게 컴포넌트마다 작성하는 것이 아닌, 모듈로 따로 관리를 해보자.
+
+#### Error message 관리
+
+1. `src/lib/exceptions.ts` 생성
+
+```javascript
+export class AuthRequiredError extends Error {
+  constructor(message = "Auth is required to access this page.") {
+    super(message)
+    this.name = "AuthRequiredError"
+  }
+}
+```
+
+2. message를 넣어주거나 default message 활용
+
+```javascript
+// page.tsx
+import {AuthRequiredError} from "@/libs/excepntions.tsx"
+
+const session = null
+
+export default function Home() {
+  if (!session) throw new AuthRequiredError // or AuthRequiredError("hello")
+  
+  return <main>This is an auth-only page</main>
+}
+```
+
+### Dynamic Routing
+
+```markdown
+/post
+	/[postId]
+  	- page.tsx
+```
+
+```javascript
+// src/app/post/[postId]/page.tsx
+
+import { FC } from 'react'
+
+interface PageProps {
+  params: {
+    postId : string
+  }
+}
+
+const page: FC<PageProps> = ({params}) => {
+  
+  return <div>{params.postId}</div>
+}
+
+export default page
+```
+
+위와 같이 우리가 설정한 동적 파라미터 변수 값을 가져올 수 있다.
+
+#### 쿼리스트링 값 접근
+
+`/post/1?searchQuery=hello` 와 같이 쿼리스트링이 있을 경우, 어떻게 값을 가져올 수 있을까?
+
+동일하게 컴포넌트 내에서 props로 받는 변수에 접근이 가능하다.
+
+![image-20230528161907992](./img/스크린샷 2023-05-28 16.18.51.png)
+
+#### Dynamic router in dynamic router
+
+`/shoppingItems/1/blue` url로 라우팅을 하고 싶을 때, 다음과 같이 `...`을 추가하여 모든 세그먼트에 접근 가능하도록 설정한다.
+
+```markdown
+/shoppingItems
+	/[...postId]
+  	- page.tsx
+  
+```
+
+```javascript
+// shoppingItems/[...postId]/page.tsx
+
+const page: FC<PageProps> = (props) => {
+  console.log(props)
+  /*
+  {
+    params : ["1", "blue"],
+     searchParams : {}
+   }
+  */    
+  return <div>{props.params.postId}</div>
+}
+
+export default page
+
+```
+
+## Chapter 2 : Rendering for optimized page speeds
+
