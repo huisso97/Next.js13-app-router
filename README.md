@@ -246,7 +246,15 @@ export default page
 /shoppingItems
 	/[...postId]
   	- page.tsx
-  
+```
+
+`/shoppingItems/hello/1/blue` 에 대한 파라미터들은 다음과 같이 postId가 배열 형태로 파싱된다.
+
+```bash
+{
+	params : { postId : ["hello", "1", "blue"] },
+	searchParams : {}
+}
 ```
 
 ```javascript
@@ -268,4 +276,363 @@ export default page
 ```
 
 ## Chapter 2 : Rendering for optimized page speeds
+
+### Next.js 12
+
+getServerSideProps 메서드로 서버 사이드로 렌더링할 요소들을 요청한 다음, 객체 형태의 props를 해당 컴포넌트에 넘겨주는 형태로 서버 사이드 렌더링 컴포넌트를 구현한다.
+
+```typescript
+const page = async (props: any) => {
+  return <div>hello</div>;
+};
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+export default page;
+```
+
+### Next.js 13
+
+13버전부터는  `getStaticProps`, `getInitialProps`, `getServerSideProps` 등 이전방법은 지원이 안된다.
+
+`fetch` 옵션을 통해  `getStaticProps`, `getInitialProps` 처럼 사용할 수 있다.
+
+#### build를 통해 각 경로 구성 확인 
+
+`yarn build`를 하면 각 경로(path)들이 어떻게(Server/Static) 빌드되는지 확인할 수 있다. 
+
+![image-20230531120959538](img/스크린샷 2023-05-31 오후 12.09.55.png)
+
+- 다이나믹 라우팅으로 구성된 경로의 경우, 파라미터의 변동성 때문에 서버사이드렌더링을 한다.
+
+#### fetch 옵션
+
+![img](img/스크린샷 2023-05-31 오후 12.13.25.png)
+
+Next.js 13에서 fetch는 cache 옵션 기능을 제공한다.
+
+`force-cache` && `deafult`: 처음에 요청한 데이터를 캐싱하고, 이후 재요청 시, 캐싱한 데이터를 반환한다. => **getStaticProps와 유사** 
+
+`no-store` : 매 요청마다 최신 데이터를 요청하려면, no-store로 설정한다. => **getServerSideProps와 유사**
+
+`revalidate` : 주기적으로 캐싱된 데이터를 갱신하기 위해서는, revalidate에 초 단위의 시간을 정의하여 설정한다. 
+
+```javascript
+  const res = await fetch("https://jsonplaceholder.typicode.com/posts/1", {
+    next: { revalidate: 10 },
+  }); // 10 초 동안은 해당 response가 캐싱되어 반환됨
+```
+
+#### axois
+
+axois의 경우, 자체적으로 fetch 옵션을 제공해주지 않으므로 커스터마이징을 하여 사용해야한다.
+
+##### dynamic
+
+해당 컴포넌트 혹은 해당 레이아웃 컴포넌트 내에서 http 요청에 대한 fetch 옵션을 설정하고 싶다면, 다음과 같이 dynamic 변수로 옵션을 설정해준다.
+
+```javascript
+import axios from "axios";
+
+export const dynamic = "force-dynamic";
+
+const page = async ({}) => {
+  const { data } = await axios.get(
+    "https://jsonplaceholder.typicode.com/posts/1"
+  );
+  return <div>{JSON.stringify(data)}</div>;
+};
+
+export default page;
+
+```
+
+빌드 시, 해당 dashboard 컴포넌트는 server-side 컴포넌트로 빌드되는 것을 확인할 수 있다.
+
+![](img/스크린샷 2023-05-31 오후 4.20.24.png)
+
+##### revalidate
+
+주기적으로 데이터를 갱신하려면 revalidate 변수를 사용하여 갱신할 초단위의 숫자를 할당한다.
+
+```typescript
+import axios from "axios";
+
+export const revalidate = 10;
+
+const page = async ({}) => {
+  const { data } = await axios.get(
+    "https://jsonplaceholder.typicode.com/posts/1"
+  );
+  return <div>{JSON.stringify(data)}</div>;
+};
+
+export default page;
+
+```
+
+빌드 시, 해당 dashboard 컴포넌트는 static 컴포넌트로 빌드되는 것을 확인할 수 있다.
+
+![](img/스크린샷 2023-05-31 오후 4.22.53.png)
+
+### generateStaticParams
+
+`generateStaticParams`함수는 빌드 타임 때, 동적 경로들을 정적으로 생성하여, 해당 컴포넌트를 **ServerSideGenerate**하게 해준다.
+
+### 
+
+#### Single Dynamic Segment
+
+```typescript
+// app/product/[id]/page.tsx
+
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+ 
+
+// - /product/1
+// - /product/2
+// - /product/3
+export default function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
+  // ...
+}
+```
+
+
+
+#### Multiple Dynamic Segments
+
+```typescript
+// app/product/[category]/[product]/page.tsx
+
+export function generateStaticParams() {
+  return [
+    { category: 'a', product: '1' },
+    { category: 'b', product: '2' },
+    { category: 'c', product: '3' },
+  ];
+}
+ 
+// Three versions of this page will be statically generated
+// using the `params` returned by `generateStaticParams`
+// - /product/a/1
+// - /product/b/2
+// - /product/c/3
+export default function Page({
+  params,
+}: {
+  params: { category: string; product: string };
+}) {
+  const { category, product } = params;
+  // ...
+}
+```
+
+[코드 출처 : https://nextjs.org/docs/app/api-reference/functions/generate-static-params]
+
+#### Catch-all Dynamic Segment
+
+```typescript
+// app/post/[...postId]/page.tsx
+
+export function generateStaticParams() {
+  return [
+    { postId: ["a", "1"] },
+    { postId: ["b", "2"] },
+    { postId: ["c", "3"] },
+  ];
+}
+
+// 함수는 하나의 객체 매개변수를 받으며, 이 객체는 params라는 속성을 가짐
+// params라는 속성은 다시 하나의 객체를 값으로 가지며, 그 객체는 postId라는 속성을 가지고 있음
+const page = ({ params }: { params: { postId: string[] } }) => {
+  const { postId } = params;
+};
+
+export default page;
+```
+
+
+
+빌드시, 해당 컴포넌트는 SSG로 생성이 되는 것을 확인할 수 있다.
+
+![](img/스크린샷 2023-05-31 오후 4.44.33.png)
+
+### Layout in Next.js 13
+
+Next.js 13에서 생성되는 layout 컴포넌트는 해당 파일 하위에 속하는 파일들이 종속관계이다.
+
+즉, 아래와 같은 구조에서 post의 인덱스 페이지는 layout 컴포넌트의 children형태로 전달된 후, props되어 렌더링된다. 
+
+```markdown
+/src
+	/app
+		layout.tsx
+			/post
+				page.tsx
+```
+
+그래서 아래와 같이 return문에 렌더링할 컴포넌트 역할을 하는 children을 같이 넣어줘야 해당 페이지가 컴포넌트 기준으로 렌더링된다.
+
+```typescript
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
+    </html>
+  )
+}
+```
+
+#### 중첩 레이아웃
+
+특정 페이지에만 적용되는 레이아웃이다.
+
+예를 들어, 마이페이지에서는 마이페이지에서만 적용되는 레이아웃이 있을 수 있다. 중첩 레이아웃을 사용하면 페이지별로 다른 레이아웃을 쉽게 적용할 수 있다.
+
+이렇게 하위 컴포넌트 내의 자체 layout을 만들게 되면, 리렌더링 시, 상위 컴포넌트는 리렌더링 되지 않고, 해당 컴포넌트만 데이터 변경시 rerendering 하도록 할 수 있다.
+
+## Chapter 3  : SEO Best Practices & Optimization
+
+### sitemap
+
+XML Sitemap은 웹사이트에 속한 url들을 나타내어, 업데이트 될 때마다 구글이 감지하고 웹사이트를 더 효율적으로 크롤링할 수 있도록 도와준다.
+
+```typescript
+// sitemap.ts
+
+type Post = {
+  userId: number;
+  id: number;
+  title: string;
+  body: string;
+};
+
+export default async function sitemap() {
+  const res = await fetch("https://jsonplaceholder.typicode.com/posts");
+  const allPosts = (await res.json()) as Post[];
+
+  const posts = allPosts.map((post) => ({
+    url: `http://localhost:300/post/${post.id}`,
+    lastModified: new Date().toISOString(),
+  }));
+
+  const routes = ["", "/about", "/post"].map((route) => ({
+    url: `http://localhost:3000${route}`,
+    lastModified: new Date().toISOString(),
+  }));
+
+  return [...routes, ...posts];
+}
+
+```
+
+yarn build 후, 프로젝트를 실행하여 웹사이트에 파라미터를 sitemap.xml로 추가하면 정리된 url들을 확인할 수 있다.
+
+### opengraph-image
+
+출처 : https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
+
+opengraph-image 파일명을 가진 이미지는 해당 경로에 대한 og(open graph)를 설정해준다.
+
+### metadata
+
+metadata는 다음 코드로 각 레이아웃 혹은 페이지 컴포넌트에서 설정할 수 있다.
+
+레이아웃의 경우, 해당 레이아웃의 하위 파일들에 공통적으로 메타데이터를 적용할 수 있으나, 페이지에서 메타데이터를 정의할 경우, 해당 페이지에 한해서만 적용된다.
+
+```javascript
+
+export const metadata = {
+  title: 'Create Next App',
+  description: 'Generated by create next app',
+}
+
+```
+
+#### 동적 라우팅에서의 metadata 설정
+
+`generateMetadata` 함수로 동적 경로를 받아와서 해당 데이터 기반으로 메타데이터를 설정할 수 있다.
+
+```typescript
+// post/[...postId]/page.tsx
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const res = await fetch(
+    `https://jsonplaceholder.typicode.com/posts/${params.postId}`
+  );
+  const data = (await res.json()) as Post;
+
+  return { title: data.title };
+}
+```
+
+프로젝트를 실행하고 페이지에 들어가면, 메타데이터가 동적으로 적용된 것을 확인할 수 있다.
+
+![](img/스크린샷 2023-05-31 오후 6.34.05.png)
+
+## Chapter 4 : Next.js 13 API Route Handlers
+
+API Route는 Next.js 앱에서 API 엔드포인트를 생성하게 해준다.
+
+`app/api` 폴더 내에 경로에 해당하는 폴더와 route 파일을 생성해준다.
+
+파일명은 무조건 route여야 Next.js 가 인식할 수 있다.
+
+참고 : https://nextjs.org/docs/app/building-your-application/routing/router-handlers
+
+route 파일 내에서는 GET, POST. PATCH 등 여러 메서드들을 정의할 수 있다.
+
+### 쿼리 스트링 값 가져오기
+
+```typescript
+// app/api/user/route.ts
+
+import { NextRequest } from "next/server";
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const mysearchParam = searchParams.get("mysearchParam");
+  console.log(mysearchParam);
+  console.log("GET REQUEST");
+
+  return new Response(JSON.stringify({ name: "hui" }), { status: 401 });
+}
+
+export async function POST() {
+  console.log("POST REQUEST");
+}
+
+```
+
+API Route에서 요청하는 url의 쿼리스트링 값을 가져오기 위해서는 해당 요청 url의 key 값을 매개변수로 전달하여 가져올 수 있다.
+
+첫번째 사진과 같이 GET 요청을 보내면 우리가 반환하는 데이터가 잘 전달되고, 서버에서는 해당 쿼리스트링 value 값을 확인할 수 있다.
+
+![](img/스크린샷 2023-05-31 오후 6.50.38.png)
+
+![](img/스크린샷 2023-05-31 오후 6.50.52.png)
+
+### runtime
+
+runtime을 다음과 같이, edge로 설정하여 빌드를 기존 Node.js 기반 API route보다 더 빠르게 할 수 있다.
+
+```javascript
+// app/api/user/route.ts
+
+export const runtime = "edge"
+
+...
+```
 
