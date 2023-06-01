@@ -73,7 +73,8 @@ app 폴더 내에 생성된 경로들은 모두 Server Component이므로, conso
 - state, effect 혹은 브라우저 api 기반 커스텀 훅을 사용할 경우
 - 리액트 클래스 컴포넌트를 사용할 경우
 
-![info](./img/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202023-05-21%2020.35.52.png)
+<img width="643" alt="1" src="https://github.com/huisso97/Next.js13-app-router/assets/89092233/1a959e46-e3f8-4e4c-abef-f450fd992864">
+
 [출처 : https://nextjs.org/docs/getting-started/react-essentials]
 
 #### Pattern
@@ -236,7 +237,8 @@ export default page
 
 동일하게 컴포넌트 내에서 props로 받는 변수에 접근이 가능하다.
 
-![image-20230528161907992](./img/스크린샷 2023-05-28 16.18.51.png)
+<img width="340" alt="2" src="https://github.com/huisso97/Next.js13-app-router/assets/89092233/b4ab72af-edca-4f31-8275-1901e329ee18">
+
 
 #### Dynamic router in dynamic router
 
@@ -304,13 +306,15 @@ export default page;
 
 `yarn build`를 하면 각 경로(path)들이 어떻게(Server/Static) 빌드되는지 확인할 수 있다. 
 
-![image-20230531120959538](img/스크린샷 2023-05-31 오후 12.09.55.png)
+![buildImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/5536d25c-7e0f-48f9-887b-6d71442ef454)
+
 
 - 다이나믹 라우팅으로 구성된 경로의 경우, 파라미터의 변동성 때문에 서버사이드렌더링을 한다.
 
 #### fetch 옵션
 
-![img](img/스크린샷 2023-05-31 오후 12.13.25.png)
+![fetchOption](https://github.com/huisso97/Next.js13-app-router/assets/89092233/18b03b3e-2be4-4e29-9918-586e0c0f24d2)
+
 
 Next.js 13에서 fetch는 cache 옵션 기능을 제공한다.
 
@@ -352,7 +356,8 @@ export default page;
 
 빌드 시, 해당 dashboard 컴포넌트는 server-side 컴포넌트로 빌드되는 것을 확인할 수 있다.
 
-![](img/스크린샷 2023-05-31 오후 4.20.24.png)
+![SSRImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/6fd80f7d-e57f-4243-9967-be98a97903f3)
+
 
 ##### revalidate
 
@@ -376,7 +381,8 @@ export default page;
 
 빌드 시, 해당 dashboard 컴포넌트는 static 컴포넌트로 빌드되는 것을 확인할 수 있다.
 
-![](img/스크린샷 2023-05-31 오후 4.22.53.png)
+![staticImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/8a1c6661-f904-423d-b36f-aaaaa1bf5e8b)
+
 
 ### generateStaticParams
 
@@ -461,7 +467,8 @@ export default page;
 
 빌드시, 해당 컴포넌트는 SSG로 생성이 되는 것을 확인할 수 있다.
 
-![](img/스크린샷 2023-05-31 오후 4.44.33.png)
+![SSGImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/9b94e94c-faad-46be-a5b0-0d10a77d5a99)
+
 
 ### Layout in Next.js 13
 
@@ -580,7 +587,8 @@ export async function generateMetadata({
 
 프로젝트를 실행하고 페이지에 들어가면, 메타데이터가 동적으로 적용된 것을 확인할 수 있다.
 
-![](img/스크린샷 2023-05-31 오후 6.34.05.png)
+![metadataTitleImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/143ef8de-81a3-4941-bee2-a42c17083db7)
+
 
 ## Chapter 4 : Next.js 13 API Route Handlers
 
@@ -620,9 +628,11 @@ API Route에서 요청하는 url의 쿼리스트링 값을 가져오기 위해�
 
 첫번째 사진과 같이 GET 요청을 보내면 우리가 반환하는 데이터가 잘 전달되고, 서버에서는 해당 쿼리스트링 value 값을 확인할 수 있다.
 
-![](img/스크린샷 2023-05-31 오후 6.50.38.png)
+![requestImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/3e989acd-2a48-4726-9e11-f2557196a13d)
 
-![](img/스크린샷 2023-05-31 오후 6.50.52.png)
+
+![serverImg](https://github.com/huisso97/Next.js13-app-router/assets/89092233/01a86fe1-5d48-4a21-b6df-6a14d9bba1be)
+
 
 ### runtime
 
